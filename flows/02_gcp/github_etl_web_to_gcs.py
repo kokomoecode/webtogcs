@@ -4,6 +4,9 @@ from prefect import flow, task
 from prefect_gcp.cloud_storage import GcsBucket
 from random import randint
 from prefect.filesystems import GitHub
+from prefect.blocks.notifications import SlackWebhook
+
+
 
 
 
@@ -45,25 +48,34 @@ def write_gcs(path: Path) -> None:
     return
 
 @task()
-def write_github(path: Path) -> None:
+def write_github() -> None:
     """write it github"""
     github_block = GitHub.load("webtogcs-greentaxi")
-    github_block.upload_from_path(from_path=path, to_path=path)
+    return
+
+
+@task()
+def write_slack() -> None:
+    "slack"
+    slack_webhook_block = SlackWebhook.load("question5")
+    slack_webhook_block.notify("Hello from Prefect!")
     return
 
 @flow()
 def etl_web_to_gcs() -> None:
     """The main ETL function"""
     color = "green"
-    year = 2020
-    month = 11
+    year = 2019
+    month = 4
     dataset_file = f"{color}_tripdata_{year}-{month:02}"
     dataset_url = f"https://github.com/DataTalksClub/nyc-tlc-data/releases/download/{color}/{dataset_file}.csv.gz"
 
     df = fetch(dataset_url)
     df_clean = clean(df)
     path = write_local(df_clean, color, dataset_file)
-    write_gcs(path)
+    # write_gcs(path)
+    write_github()
+    write_slack()
 
 
 if __name__ == "__main__":
